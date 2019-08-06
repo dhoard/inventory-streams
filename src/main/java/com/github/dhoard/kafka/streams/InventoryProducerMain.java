@@ -88,7 +88,7 @@ public class InventoryProducerMain {
                 String store = randomElement(storeList);
 
                 // Positive means increment, negative means decrement,
-                long qty = randomLong(-10, 10);
+                long qty = 1; // randomLong(-10, 10);
 
                 // Skip values that have no change
                 if (qty != 0L) {
