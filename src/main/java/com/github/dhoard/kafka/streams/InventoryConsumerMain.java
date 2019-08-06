@@ -1,6 +1,9 @@
 package com.github.dhoard.kafka.streams;
 
 import io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
@@ -35,7 +38,9 @@ public class InventoryConsumerMain {
         }
     }
 
-    private KafkaConsumer<InventoryKey, InventoryValue> kafkaConsumer = null;
+    private BufferedWriter bufferedWriter;
+
+    private KafkaConsumer<InventoryKey, InventoryValue> kafkaConsumer;
 
     private void run(String[] args) throws Exception {
         addShutdownHook();
@@ -55,12 +60,23 @@ public class InventoryConsumerMain {
             MonitoringConsumerInterceptor.class.getName());
 
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, args[0]);
-        //properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        BufferedWriter bufferedWriter = null;
+
         try {
+            new File(new File(".").getCanonicalPath() + "/output").mkdir();
+
+            this.bufferedWriter =
+                new BufferedWriter(
+                    new FileWriter(
+                        new File(".").getCanonicalFile() + "/output/output.txt"));
+
             this.kafkaConsumer = new KafkaConsumer<InventoryKey, InventoryValue>(properties);
             this.kafkaConsumer.subscribe(Collections.singleton(args[0]));
+
+            StringBuilder stringBuilder = new StringBuilder();
+            String line = null;
 
             while (true) {
                 ConsumerRecords<InventoryKey, InventoryValue> consumerRecords = kafkaConsumer
@@ -72,22 +88,34 @@ public class InventoryConsumerMain {
                     String sku = consumerRecord.key().sku;
                     long value = consumerRecord.value().value;
 
-                    if (store.equals("Lexington") && location.equals("front of house")) {
-                        if ("66561883561927".equals(sku)) {
-                            logger.info("---------------------------");
-                            logger.info(
-                                "store    -> " + store);
-                            logger.info(
-                                "location -> " + location);
-                            logger.info(
-                                "sku      -> " + sku);
-                            logger.info(
-                                "qty      -> " + value);
-                        }
-                    }
+                    stringBuilder.setLength(0);
+
+                    stringBuilder.append(store);
+                    stringBuilder.append(", ");
+                    stringBuilder.append(location);
+                    stringBuilder.append(", ");
+                    stringBuilder.append(sku);
+                    stringBuilder.append(", ");
+                    stringBuilder.append(value);
+                    stringBuilder.append(System.lineSeparator());
+
+                    line = stringBuilder.toString();
+
+                    System.out.print(line);
+                    this.bufferedWriter.write(line);
                 }
+
+                this.bufferedWriter.flush();
             }
         } finally {
+            if (null != this.bufferedWriter) {
+                try {
+                    this.bufferedWriter.close();
+                } catch (Throwable t) {
+                    logger.error("Exception closing bufferedWriter");
+                }
+            }
+
             if (null != this.kafkaConsumer) {
                 try {
                     this.kafkaConsumer.close();

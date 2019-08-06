@@ -30,28 +30,10 @@ public class InventoryProducerMain {
         File file = new File(".");
 
         args = new String[3];
-        args[0] = file.getCanonicalPath() + "/data/skus_1.txt";
+        args[0] = file.getCanonicalPath() + "/data/skus.txt";
         args[1] = file.getCanonicalPath() + "/data/locations.txt";
         args[2] = file.getCanonicalPath() + "/data/stores.txt";
 
-        /*
-        final String[] final_args = args;
-
-        for (int i = 0;i < 10; i++) {
-            new Thread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            new InventoryProducerMain().run(final_args);
-                        } catch (Throwable t) {
-                            ThrowableUtil.throwUnchecked(t);
-                        }
-                    }
-                }
-            ).start();
-        }
-        */
         new InventoryProducerMain().run(args);
     }
 
@@ -100,18 +82,13 @@ public class InventoryProducerMain {
 
             this.kafkaProducer = new KafkaProducer<InventoryKey, InventoryValue>(properties);
 
-            //while (true) {
-            for (int i = 0; i < 100; i++) {
+            while (true) {
                 String sku = randomElement(skuList);
                 String location = randomElement(locationList);
                 String store = randomElement(storeList);
 
-                sku = "66561883561927";
-                location = "front of house";
-                store = "Lexington";
-
                 // Positive means increment, negative means decrement,
-                long qty = 1; //randomLong(-10, 10);
+                long qty = randomLong(-10, 10);
 
                 // Skip values that have no change
                 if (qty != 0L) {
@@ -128,15 +105,8 @@ public class InventoryProducerMain {
 
                     this.kafkaProducer.send(producerRecord);
 
-                    //ExtendedCallback extendedCallback = new ExtendedCallback(producerRecord);
-                    //Future<RecordMetadata> future = kafkaProducer
-                    //    .send(producerRecord, extendedCallback);
-
-                    //future.get();
-                    //logger.info("isError = [" + exceptionCallback.isError() + "]");
-
                     try {
-                        Thread.sleep(randomLong(1, 100));
+                        Thread.sleep(randomLong(1, 1000));
                     } catch (Throwable t) {
                         // DO NOTHING
                     }
@@ -187,74 +157,12 @@ public class InventoryProducerMain {
         return list.get(random.nextInt(list.size()));
     }
 
-    private static String combine(String string1, String string2, String string3) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(string1);
-        stringBuilder.append("_");
-        stringBuilder.append(string2);
-        stringBuilder.append("_");
-        stringBuilder.append(string3);
-
-        return stringBuilder.toString().replaceAll(" ", "-");
-    }
-
-    private static String getISOTimestamp() {
-        return toISOTimestamp(System.currentTimeMillis(), "America/New_York");
-    }
-
-    private static String toISOTimestamp(long milliseconds, String timeZoneId) {
-        return Instant.ofEpochMilli(milliseconds).atZone(ZoneId.of(timeZoneId)).toString().replace("[" + timeZoneId + "]", "");
-    }
-
     private static long randomLong(int min, int max) {
         if (max == min) {
             return min;
         }
 
         return + (long) (random.nextDouble() * (max - min));
-    }
-
-    private static int randomInt(int min, int max) {
-        if (max == min) {
-            return min;
-        }
-
-        return random.nextInt(max - min) + min;
-    }
-
-    public class ExtendedCallback implements Callback {
-
-        private ProducerRecord producerRecord;
-
-        private RecordMetadata recordMetadata;
-
-        private Exception exception;
-
-        public ExtendedCallback(ProducerRecord<String, String> producerRecord) {
-            this.producerRecord = producerRecord;
-        }
-
-        public boolean isError() {
-            return (null != this.exception);
-        }
-
-        private RecordMetadata getRecordMetadata() {
-            return this.recordMetadata;
-        }
-
-        public Exception getException() {
-            return this.exception;
-        }
-
-        public void onCompletion(RecordMetadata recordMetadata, Exception exception) {
-            this.recordMetadata = recordMetadata;
-
-            if (null == exception) {
-                logger.info("Received, key = [" + producerRecord.key() + "] value = [" + producerRecord.value() + "] topic = [" + recordMetadata.topic() + "] partition = [" + recordMetadata.partition() + "] offset = [" + recordMetadata.offset() + "] timestamp = [" + toISOTimestamp(recordMetadata.timestamp(), "America/New_York") + "]");
-            }
-
-            this.exception = exception;
-        }
     }
 }
 
