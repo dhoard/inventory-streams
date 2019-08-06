@@ -1,5 +1,6 @@
 package com.github.dhoard.kafka.streams;
 
+import com.github.dhoard.util.TimestampUtil;
 import io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -90,6 +91,8 @@ public class InventoryConsumerMain {
 
                     stringBuilder.setLength(0);
 
+                    stringBuilder.append(TimestampUtil.getISOTimestamp());
+                    stringBuilder.append(", ");
                     stringBuilder.append(store);
                     stringBuilder.append(", ");
                     stringBuilder.append(location);
