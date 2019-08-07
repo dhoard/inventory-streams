@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.github.dhoard.util.ThrowableUtil;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
@@ -41,12 +42,12 @@ public class InventoryValue {
 
         @Override
         public void serialize(
-            InventoryValue value, JsonGenerator jgen, SerializerProvider provider)
+            InventoryValue inventoryValue, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
             throws IOException, JsonProcessingException {
 
-            jgen.writeStartObject();
-            jgen.writeNumberField("value", value.value);
-            jgen.writeEndObject();
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeNumberField("value", inventoryValue.value);
+            jsonGenerator.writeEndObject();
         }
     }
 
@@ -61,10 +62,10 @@ public class InventoryValue {
         }
 
         @Override
-        public InventoryValue deserialize(JsonParser jp, DeserializationContext ctxt)
-            throws IOException, JsonProcessingException {
-            JsonNode node = jp.getCodec().readTree(jp);
-            long value = node.get("value").asLong(0);
+        public InventoryValue deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+            throws IOException {
+            JsonNode jsonNode = jsonParser.getCodec().readTree(jsonParser);
+            long value = jsonNode.get("value").asLong(0);
 
             return new InventoryValue(value);
         }
@@ -83,37 +84,41 @@ public class InventoryValue {
         }
 
         @Override
-        public void configure(final Map<String, ?> configs, final boolean isKey) {}
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            // DO NOTHING
+        }
 
         @SuppressWarnings("unchecked")
         @Override
-        public InventoryValue deserialize(final String topic, final byte[] data) {
-            if (data == null) {
-                return null;
-            }
+        public InventoryValue deserialize(String topic, byte[] data) {
+            InventoryValue result = null;
 
             try {
-                return objectMapper.readValue(data, InventoryValue.class);
-            } catch (final IOException e) {
-                throw new SerializationException(e);
+                result = objectMapper.readValue(data, InventoryValue.class);
+            } catch (Throwable t) {
+                ThrowableUtil.throwUnchecked(t);
             }
+
+            return result;
         }
 
         @Override
-        public byte[] serialize(final String topic, final InventoryValue data) {
-            if (data == null) {
-                return null;
-            }
+        public byte[] serialize(String topic, InventoryValue data) {
+            byte[] result = null;
 
             try {
-                return objectMapper.writeValueAsBytes(data);
-            } catch (final Exception e) {
-                throw new SerializationException("Error serializing JSON message", e);
+                result = objectMapper.writeValueAsBytes(data);
+            } catch (Throwable t) {
+                ThrowableUtil.throwUnchecked(t);
             }
+
+            return result;
         }
 
         @Override
-        public void close() {}
+        public void close() {
+            // DO NOTHING
+        }
 
         @Override
         public Serializer<InventoryValue> serializer() {

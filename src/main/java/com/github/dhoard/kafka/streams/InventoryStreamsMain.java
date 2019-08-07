@@ -19,17 +19,13 @@ public class InventoryStreamsMain {
 
     private final static Logger logger = LoggerFactory.getLogger(InventoryStreamsMain.class);
 
-    public static void main(String[] args) throws Throwable {
-        new InventoryStreamsMain().run(args);
-    }
-
-    private ObjectMapper objectMapper;
-
     private StreamsBuilder streamsBuilder;
 
     private KStream<InventoryKey, InventoryValue> inventoryKeyInventoryValueKStream;
 
-    private KTable<InventoryKey, Long> inventoryKeyLongKTable;
+    public static void main(String[] args) throws Throwable {
+        new InventoryStreamsMain().run(args);
+    }
 
     public void run(String[] args) throws Throwable {
         String bootstrapServers = "confluent-platform-standalone-2.address.cx:9092";
@@ -57,8 +53,6 @@ public class InventoryStreamsMain {
 
         logger.info("inputTopic  = [" + inputTopic + "]");
         logger.info("outputTopic = [" + outputTopic + "]");
-
-        this.objectMapper = new ObjectMapper();
 
         this.streamsBuilder = new StreamsBuilder();
 

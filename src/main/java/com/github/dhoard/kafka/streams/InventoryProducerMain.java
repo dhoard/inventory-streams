@@ -1,6 +1,8 @@
 package com.github.dhoard.kafka.streams;
 
 import com.github.dhoard.kafka.streams.InventoryValue.JSONSerde;
+import com.github.dhoard.util.ListUtil;
+import com.github.dhoard.util.RandomUtil;
 import io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor;
 import java.io.BufferedReader;
 import java.io.File;
@@ -24,7 +26,13 @@ public class InventoryProducerMain {
 
     private static final Logger logger = LoggerFactory.getLogger(InventoryProducerMain.class);
 
-    private static final Random random = new Random();
+    private ArrayList<String> skuList;
+
+    private ArrayList<String> locationList;
+
+    private ArrayList<String> storeList;
+
+    private KafkaProducer<InventoryKey, InventoryValue> kafkaProducer;
 
     public static void main(String[] args) throws Exception {
         File file = new File(".");
@@ -37,25 +45,17 @@ public class InventoryProducerMain {
         new InventoryProducerMain().run(args);
     }
 
-    private ArrayList<String> skuList;
-
-    private ArrayList<String> locationList;
-
-    private ArrayList<String> storeList;
-
-    private KafkaProducer<InventoryKey, InventoryValue> kafkaProducer;
-
     public void run(String[] args) throws Exception {
         addShutdownHook();
 
         logger.info("loading skus (" + args[0] + ") ...");
-        skuList = buildList(new FileReader(args[0]));
+        skuList = ListUtil.buildList(new FileReader(args[0]));
 
         logger.info("loading locations (" + args[1] + ") ...");
-        locationList = buildList(new FileReader(args[1]));
+        locationList = ListUtil.buildList(new FileReader(args[1]));
 
         logger.info("loading stores (" + args[2] + ") ...");
-        storeList = buildList(new FileReader(args[2]));
+        storeList = ListUtil.buildList(new FileReader(args[2]));
 
         KafkaProducer<InventoryKey, InventoryValue> kafkaProducer = null;
 
@@ -83,9 +83,9 @@ public class InventoryProducerMain {
             this.kafkaProducer = new KafkaProducer<InventoryKey, InventoryValue>(properties);
 
             while (true) {
-                String sku = randomElement(skuList);
-                String location = randomElement(locationList);
-                String store = randomElement(storeList);
+                String sku = ListUtil.randomElement(skuList);
+                String location = ListUtil.randomElement(locationList);
+                String store = ListUtil.randomElement(storeList);
 
                 // Positive means increment, negative means decrement,
                 long qty = 1; // randomLong(-10, 10);
@@ -106,7 +106,7 @@ public class InventoryProducerMain {
                     this.kafkaProducer.send(producerRecord);
 
                     try {
-                        Thread.sleep(randomLong(1, 1000));
+                        Thread.sleep(RandomUtil.randomLong(1, 1000));
                     } catch (Throwable t) {
                         // DO NOTHING
                     }
@@ -133,36 +133,6 @@ public class InventoryProducerMain {
                 shutdown();
             }
         }));
-    }
-
-    private static ArrayList<String> buildList(Reader reader) throws IOException {
-        ArrayList<String> stringList = new ArrayList<>();
-        BufferedReader bufferedReader = new BufferedReader(reader);
-
-        while (true) {
-            String line = bufferedReader.readLine();
-            if (null == line) {
-                break;
-            }
-
-            if (!line.startsWith("#")) {
-                stringList.add(line.trim());
-            }
-        }
-
-        return stringList;
-    }
-
-    private static String randomElement(ArrayList<String> list) {
-        return list.get(random.nextInt(list.size()));
-    }
-
-    private static long randomLong(int min, int max) {
-        if (max == min) {
-            return min;
-        }
-
-        return + (long) (random.nextDouble() * (max - min));
     }
 }
 

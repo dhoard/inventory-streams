@@ -19,29 +19,13 @@ public class InventoryConsumerMain {
 
     private static final Logger logger = LoggerFactory.getLogger(InventoryConsumerMain.class);
 
-    public static void main(String[] args) throws Exception {
-
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    new InventoryConsumerMain().run(new String[] { "inventory-output" });
-                } catch (Throwable t) {
-                    logger.error("Exception", t);
-                }
-            }
-        });
-
-        thread.start();
-
-        synchronized (Thread.currentThread()) {
-            Thread.currentThread().wait();
-        }
-    }
-
     private BufferedWriter bufferedWriter;
 
     private KafkaConsumer<InventoryKey, InventoryValue> kafkaConsumer;
+
+    public static void main(String[] args) throws Exception {
+        new InventoryConsumerMain().run(new String[] { "inventory-output" });
+    }
 
     private void run(String[] args) throws Exception {
         addShutdownHook();
@@ -140,15 +124,5 @@ public class InventoryConsumerMain {
                 shutdown();
             }
         }));
-    }
-
-    private String padLeft(String value, int length, String s) {
-        String result = value;
-
-        while (result.length() < length) {
-            result = s + result;
-        }
-
-        return result;
     }
 }

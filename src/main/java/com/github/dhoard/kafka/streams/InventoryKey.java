@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.github.dhoard.util.ThrowableUtil;
 import java.io.IOException;
 import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
@@ -47,14 +48,14 @@ public class InventoryKey {
 
         @Override
         public void serialize(
-            InventoryKey value, JsonGenerator jgen, SerializerProvider provider)
+            InventoryKey inventoryKey, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
             throws IOException, JsonProcessingException {
 
-            jgen.writeStartObject();
-            jgen.writeStringField("sku", value.sku);
-            jgen.writeStringField("location", value.location);
-            jgen.writeStringField("store", value.store);
-            jgen.writeEndObject();
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeStringField("sku", inventoryKey.sku);
+            jsonGenerator.writeStringField("location", inventoryKey.location);
+            jsonGenerator.writeStringField("store", inventoryKey.store);
+            jsonGenerator.writeEndObject();
         }
     }
 
@@ -69,12 +70,12 @@ public class InventoryKey {
         }
 
         @Override
-        public InventoryKey deserialize(JsonParser jp, DeserializationContext ctxt)
-            throws IOException, JsonProcessingException {
-            JsonNode node = jp.getCodec().readTree(jp);
-            String store = node.get("store").asText();
-            String location = node.get("location").asText();
-            String sku = node.get("sku").asText();
+        public InventoryKey deserialize(JsonParser jsonParser, DeserializationContext deserializationContext)
+            throws IOException {
+            JsonNode jsonNode = jsonParser.getCodec().readTree(jsonParser);
+            String store = jsonNode.get("store").asText();
+            String location = jsonNode.get("location").asText();
+            String sku = jsonNode.get("sku").asText();
 
             return new InventoryKey(store, location, sku);
         }
@@ -94,37 +95,41 @@ public class InventoryKey {
         }
 
         @Override
-        public void configure(final Map<String, ?> configs, final boolean isKey) {}
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            // DO NOTHING
+        }
 
         @SuppressWarnings("unchecked")
         @Override
-        public InventoryKey deserialize(final String topic, final byte[] data) {
-            if (data == null) {
-                return null;
-            }
+        public InventoryKey deserialize(String topic, byte[] data) {
+            InventoryKey result = null;
 
             try {
-                return objectMapper.readValue(data, InventoryKey.class);
-            } catch (final IOException e) {
-                throw new SerializationException(e);
+                result = objectMapper.readValue(data, InventoryKey.class);
+            } catch (Throwable t) {
+                ThrowableUtil.throwUnchecked(t);
             }
+
+            return result;
         }
 
         @Override
-        public byte[] serialize(final String topic, final InventoryKey data) {
-            if (data == null) {
-                return null;
-            }
+        public byte[] serialize(String topic, InventoryKey data) {
+            byte[] result = null;
 
             try {
-                return objectMapper.writeValueAsBytes(data);
-            } catch (final Exception e) {
-                throw new SerializationException("Error serializing JSON message", e);
+                result = objectMapper.writeValueAsBytes(data);
+            } catch (Throwable t) {
+                ThrowableUtil.throwUnchecked(t);
             }
+
+            return result;
         }
 
         @Override
-        public void close() {}
+        public void close() {
+            // DO NOTHING
+        }
 
         @Override
         public Serializer<InventoryKey> serializer() {

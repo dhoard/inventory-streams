@@ -19,12 +19,10 @@ public class ThrowableUtil {
     }
 
     public static void throwUnchecked(Throwable t) {
-        if (null != t) {
-            if (t instanceof RuntimeException) {
-                throw ((RuntimeException) t);
-            } else {
-                throw new RuntimeException(t);
-            }
+        if (t instanceof RuntimeException) {
+            throw ((RuntimeException) t);
+        } else {
+            throw new RuntimeException(t);
         }
     }
 }
